@@ -3,7 +3,7 @@ import { ApplicationStatus } from 'src/enums/application-status.enum';
 import { BelongsTo, Column, DataType, ForeignKey, HasMany, Model, Table } from 'sequelize-typescript';
 import { Broker } from '../brokers/broker.entity';
 import { Exclude } from 'class-transformer';
-import { IsDate, IsEnum, IsInt, IsNumber, IsOptional } from 'class-validator';
+import { IsDate, IsEnum, IsInt, IsNumber, IsOptional, IsString } from 'class-validator';
 import { Task } from '../tasks/task.entity';
 
 /**
@@ -43,29 +43,34 @@ export class Application extends Model<Application> {
    * The applicant's name
    */
   @ApiProperty({ description: "The applicant's name" })
-  @Column({ type: DataType.STRING(50), field: 'applicant_name' })
+  @Column({ type: DataType.STRING(100), field: 'applicant_name' })
+  @IsString()
   applicantName: string;
   /**
    * The applicant's email address
    */
   @ApiProperty({ description: "The applicant's email address" })
   @Column({ type: DataType.STRING(255), field: 'applicant_email' })
+  @IsString()
   applicantEmail: string;
   /**
    * The applicant's mobile phone number
    */
   @ApiProperty({ description: "The applicant's mobile phone number" })
+  @IsString()
   @Column({
     type: DataType.STRING(20),
     unique: true,
     field: 'applicant_mobile_phone_number',
   })
+  @IsString()
   applicantMobilePhoneNumber: string;
   /**
    * The applicant's address
    */
   @ApiProperty({ description: "The applicant's address" })
   @Column({ type: DataType.STRING(50), field: 'applicant_address' })
+  @IsString()
   applicantAddress: string;
   /**
    * The broker that arranged the loan
@@ -99,6 +104,7 @@ export class Application extends Model<Application> {
    */
   @ApiProperty({ description: 'The incoming property address' })
   @Column({ type: DataType.STRING(50), field: 'incoming_address' })
+  @IsString()
   incomingAddress: string;
   /**
    * The deposit paid on the incoming property in dollars
@@ -165,6 +171,7 @@ export class Application extends Model<Application> {
    */
   @ApiProperty({ description: 'The outgoing property address' })
   @Column({ type: DataType.STRING(50), field: 'outgoing_address' })
+  @IsString()
   outgoingAddress: string;
   /**
    * The remaining mortgage if any on the outgoing property in dollars
@@ -172,7 +179,7 @@ export class Application extends Model<Application> {
   @ApiProperty({ description: 'The remaining mortgage if any on the outgoing property in dollars' })
   @Column({
     type: DataType.DECIMAL(10, 2),
-    field: 'outgoing_valuation',
+    field: 'outgoing_mortgage',
   })
   @IsNumber()
   outgoingMortgage: number;
@@ -247,8 +254,10 @@ export class Application extends Model<Application> {
         [this.sequelize.fn('AVG', this.sequelize.col('loan_amount')), 'averageLoanAmount']
       ],
     });
-
-    const res = result?.get('averageLoanAmount') || 0;
+  
+    // Default to 0 if result is null or undefined
+    const res = result?.get('averageLoanAmount') ?? 0;
     return res as number;
   }
+  
 }

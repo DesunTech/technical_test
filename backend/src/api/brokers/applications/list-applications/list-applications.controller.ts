@@ -1,4 +1,15 @@
-import { APPLICATION_REPOSITORY } from 'src/common/constants/repositories';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -7,7 +18,19 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { Op } from 'sequelize';
+import { APPLICATION_REPOSITORY } from 'src/common/constants/repositories';
+import { INTERNAL_SERVER_ERROR } from 'src/common/constants/response-messages';
+import User from 'src/common/decorators/user';
+import { createDateFilter } from 'src/common/query-filters';
+import { InternalServerErrorResponseDto } from 'src/common/responses';
+import { formatResponseTable } from 'src/common/swagger';
+import { ApplicationStatus } from 'src/enums/application-status.enum';
+import { TaskStatus } from 'src/enums/task-status.enum';
 import { Application } from 'src/models/applications/application.entity';
+import { BrokerDto } from 'src/models/brokers/broker.dto';
+import { Task } from 'src/models/tasks/task.entity';
+import { BrokerGuard } from '../../broker.guard';
 import {
   ApplicationDto,
   BrokerApplicationPostResponseDto,
@@ -15,18 +38,6 @@ import {
   BrokerApplicationsListRequestDto,
   BrokerApplicationsListResponseDto,
 } from './list-applications.dto';
-import { BrokerDto } from 'src/models/brokers/broker.dto';
-import { BrokerGuard } from '../../broker.guard';
-import { Body, Controller, Get, HttpCode, HttpException, HttpStatus, Inject, Post, Query, UseGuards } from '@nestjs/common';
-import { INTERNAL_SERVER_ERROR } from 'src/common/constants/response-messages';
-import { InternalServerErrorResponseDto } from 'src/common/responses';
-import { Task } from 'src/models/tasks/task.entity';
-import { TaskStatus } from 'src/enums/task-status.enum';
-import { createDateFilter } from 'src/common/query-filters';
-import { formatResponseTable } from 'src/common/swagger';
-import User from 'src/common/decorators/user';
-import { Op } from 'sequelize';
-import { ApplicationStatus } from 'src/enums/application-status.enum';
 
 /**
  * Broker API endpoint for listing applications they have submitted with optional result filtering.
@@ -41,7 +52,7 @@ export class BrokerApplicationsListController {
   constructor(
     @Inject(APPLICATION_REPOSITORY)
     private applicationEntity: typeof Application,
-  ) { }
+  ) {}
 
   /**
    * Fetches the applications that the broker has submitted.  The applications are optionally filtered
@@ -104,7 +115,7 @@ export class BrokerApplicationsListController {
     };
     if (query.status) {
       whereOptions.status = { [Op.in]: query.status };
-      console.log(whereOptions)
+      console.log(whereOptions);
     }
     const applications = await this.applicationEntity.findAll({
       where: whereOptions,
@@ -122,8 +133,7 @@ export class BrokerApplicationsListController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Create applications',
-    description:
-      'Create the applications that the broker has submitted.',
+    description: 'Create the applications that the broker has submitted.',
   })
   @ApiOkResponse({
     type: BrokerApplicationPostResponseDto,
@@ -136,16 +146,25 @@ export class BrokerApplicationsListController {
     type: BrokerApplicationsListBadRequestResponseDto,
     description: formatResponseTable({}),
   })
-  async post(
-    @User() user: BrokerDto,
-    @Body() body: ApplicationDto
-  ): Promise<BrokerApplicationPostResponseDto> {
-    const avgLoanAmount = await this.applicationEntity.getAverageLoanAmount()
+  async post(@User() user: BrokerDto, @Body() body: ApplicationDto): Promise<BrokerApplicationPostResponseDto> {
+    const avgLoanAmount = await this.applicationEntity.getAverageLoanAmount();
     const loanAmount = body.loanAmount !== avgLoanAmount ? body.loanAmount : null;
-    // const application = await this.applicationEntity.create({ ...body, status: ApplicationStatus.Submitted, brokerId: user.id });
+    await this.applicationEntity.create({ ...body, status: ApplicationStatus.Submitted, brokerId: user.id });
+
+    let loanAmountStatus: string | null = null;
+
+    if (body.loanAmount > avgLoanAmount) {
+      loanAmountStatus = 'above';
+    } else if (body.loanAmount < avgLoanAmount) {
+      loanAmountStatus = 'below';
+    } else {
+      loanAmountStatus = 'at';
+    }
+
     return {
       success: true,
-      loanAmount
+      loanAmount,
+      message: `Loan amount is ${loanAmountStatus} average`,
     };
   }
 }

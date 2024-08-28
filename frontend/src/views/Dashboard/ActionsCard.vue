@@ -25,30 +25,70 @@ const formData = ref({
   savingsContribution: 0,
 });
 
+const resetFormData = () => {
+  formData.value = {
+    applicantName: '',
+    applicantEmail: '',
+    applicantMobilePhoneNumber: '',
+    applicantAddress: '',
+    annualIncomeBeforeTax: 0,
+    incomingAddress: '',
+    incomingDeposit: 0,
+    incomingPrice: 0,
+    incomingStampDuty: 0,
+    loanAmount: 0,
+    loanDuration: 0,
+    monthlyExpenses: 0,
+    outgoingAddress: '',
+    outgoingMortgage: 0,
+    outgoingValuation: 0,
+    savingsContribution: 0,
+  };
+};
+
+
+// const submitApplication = async () => {
+//   @submit.prevent="submitApplication"
+//   const response = await api.applications.post(formData.value)
+//   if (response.success) toast.success('Application Saved Successfully.')
+//   else {
+//     toast.error('Error occurred while saving application')
+//     formData.value.applicantName = '';
+//     formData.value.applicantEmail = '';
+//     formData.value.applicantMobilePhoneNumber = '';
+//     formData.value.applicantAddress = '';
+//     formData.value.annualIncomeBeforeTax = 0;
+//     formData.value.incomingAddress = '';
+//     formData.value.incomingDeposit = 0;
+//     formData.value.incomingPrice = 0;
+//     formData.value.incomingStampDuty = 0;
+//     formData.value.loanAmount = 0;
+//     formData.value.loanDuration = 0;
+//     formData.value.monthlyExpenses = 0;
+//     formData.value.outgoingAddress = '';
+//     formData.value.outgoingMortgage = 0;
+//     formData.value.outgoingValuation = 0;
+//     formData.value.savingsContribution = 0;
+//   }
+//   modal.confirm(false)
+// }
+
 const submitApplication = async () => {
-  const response = await api.applications.post(formData.value)
-  if (response.success) toast.success('Application Saved Successfully.')
-  else {
-    toast.error('Error occurred while saving application')
-    formData.value.applicantName = '';
-    formData.value.applicantEmail = '';
-    formData.value.applicantMobilePhoneNumber = '';
-    formData.value.applicantAddress = '';
-    formData.value.annualIncomeBeforeTax = 0;
-    formData.value.incomingAddress = '';
-    formData.value.incomingDeposit = 0;
-    formData.value.incomingPrice = 0;
-    formData.value.incomingStampDuty = 0;
-    formData.value.loanAmount = 0;
-    formData.value.loanDuration = 0;
-    formData.value.monthlyExpenses = 0;
-    formData.value.outgoingAddress = '';
-    formData.value.outgoingMortgage = 0;
-    formData.value.outgoingValuation = 0;
-    formData.value.savingsContribution = 0;
+  try {
+    const response = await api.applications.post(formData.value);
+    if (response.success) {
+      toast.success(response?.message);
+      modal.confirm(false);
+    } else {
+      toast.error('Error occurred while saving application');
+      resetFormData();
+    }
+  } catch (error) {
+    console.error("Error submitting application:", error);
+    toast.error('An unexpected error occurred.');
   }
-  modal.confirm(false)
-}
+};
+
 </script>
 
 <template>
@@ -107,7 +147,7 @@ const submitApplication = async () => {
       </form>
 
       <template #footer>
-        <BButton type="submit" variant="primary" label="Submit"></BButton>
+        <BButton type="submit" variant="primary" label="Submit" @click="submitApplication"></BButton>
         <BButton label="Cancel" @click="modal.confirm(false)"></BButton>
       </template>
     </BModal>
