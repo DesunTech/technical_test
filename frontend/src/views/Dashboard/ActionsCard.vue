@@ -106,6 +106,7 @@ const submitApplication = async () => {
     const response = await api.applications.post(formData.value);
     if (response.success) {
       toast.success(response?.message);
+      resetFormData();
       modal.confirm(false);
     } else {
       toast.error('Error occurred while saving application');
